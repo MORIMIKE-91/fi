@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "updated_at": "2025-09-11T00:00:00Z",
+  "links": [
+    { "key": "home",   "url": "https://example.com/home" },
+    { "key": "play",   "url": "https://example.com/game1" },
+    { "key": "world1", "url": "https://example.com/world1" },
+    { "key": "world2", "url": "https://example.com/world2" },
+    { "key": "help",   "url": "https://example.com/help" }
+  ],
+  "flags": {
+    "append_params": { "disableIAP": "1" },
+    "force_https": true
+  }
+}
