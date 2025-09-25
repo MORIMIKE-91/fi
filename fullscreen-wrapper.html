@@ -2,76 +2,196 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <!-- If saved to home screen, use edge-to-edge -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Fullscreen Game</title>
   <style>
-    /* Base reset */
-    html, body { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; }
-    /* Fill the entire screen */
+    html, body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
     #stage {
-      position: fixed;
-      inset: 0;
-      /* Keep critical UI away from notches / home bar if the game respects page size */
+      position:fixed; inset:0;
       padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0)
                env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
     }
-    /* On newer Safari, use dynamic viewport height that includes browser UI changes */
-    @supports (height: 100dvh) {
-      #stage { height: 100dvh; width: 100vw; padding: 0; }
-    }
-    /* The game frame itself */
+    @supports (height: 100dvh) { #stage { height:100dvh; width:100vw; padding:0; } }
     #frame {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      display: block;
-      background: #000;
+      position:absolute; inset:0; width:100%; height:100%;
+      border:0; display:block; background:#000;
     }
-    /* Optional: show a tiny loading hint while the iframe initializes */
     #hint {
-      position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      color: #9aa4ad; font-size: 14px; opacity: .8;
-      pointer-events: none;
+      position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      color:#9aa4ad; font-size:14px; opacity:.8; pointer-events:none;
     }
+
+    /* Start overlay */
+    #starter {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.6); z-index:10;
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0)
+               env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+      backdrop-filter: blur(2px);
+    }
+    #starter[hidden] { display:none; }
+
+    /* Button style (your requested vibe) */
+    .btn {
+      appearance: none;
+      background-color: #1899D6;
+      border: solid transparent;
+      border-radius: 16px;
+      border-width: 0 0 4px;
+      box-sizing: border-box;
+      color: #fff;
+      cursor: pointer;
+      display: inline-block;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      line-height: 20px;
+      margin: 0;
+      outline: none;
+      padding: 13px 19px;
+      text-align: center;
+      text-transform: uppercase;
+      user-select: none;
+      -webkit-user-select: none;
+      transform: translateZ(0);
+      transition: filter .2s, transform .05s;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-sub { margin-top:10px; display:block; color:#c7d1d8; font-size:12px; text-align:center; }
   </style>
 </head>
 <body>
   <div id="stage">
-    <iframe id="frame" src="" allow="fullscreen; gamepad; accelerometer; gyroscope; clipboard-read; clipboard-write"
+    <iframe id="frame" src="https://playgama.com/export/game/barry-prison-parkour-escape-27f2-1?clid=p_18fee4db-df65-4af9-8d67-0431be4b9a9b;device-type=mobile"
+      allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope; clipboard-read; clipboard-write"
       allowfullscreen webkitallowfullscreen mozallowfullscreen></iframe>
   </div>
+
+  <!-- Minimal loading hint -->
   <div id="hint">Loading…</div>
+
+  <!-- “Skip loading & Play” overlay -->
+  <div id="starter" hidden>
+    <div style="text-align:center">
+      <button id="startBtn" class="btn">Skip loading &amp; Play</button>
+      <span class="btn-sub">One tap unlocks audio and starts the game</span>
+    </div>
+  </div>
+
   <script>
-    // Read ?u=<encoded target url> from the querystring.
     const params = new URLSearchParams(location.search);
-    const target = params.get("u") || "https://playgama.com/export/game/barry-prison-parkour-escape-27f2-1?clid=p_18fee4db-df65-4af9-8d67-0431be4b9a9b;device-type=mobile";
     const iframe = document.getElementById("frame");
+    const hint = document.getElementById("hint");
+    const starter = document.getElementById("starter");
+    const wantAutoplayParam = params.get("ap") === "1";
+    const skipHintNow = params.get("skip") === "1";
+
+    // Build iframe src with optional autoplay=1
+    let target = params.get("u") || "";
+    if (wantAutoplayParam && target) {
+      const hasAuto = /([?&])autoplay=1(\b|&|$)/i.test(target);
+      if (!hasAuto) target += (target.includes("?") ? "&" : "?") + "autoplay=1";
+    }
     iframe.src = target;
 
-    // Hide hint when the game starts drawing.
-    iframe.addEventListener("load", () => {
-      const h = document.getElementById("hint");
-      if (h) h.style.display = "none";
-    });
+    // Optional early hide of our hint
+    if (skipHintNow && hint) hint.style.display = "none";
 
-    // Best-effort landscape lock (supported iOS 16+, most Android/desktop)
-    if (screen.orientation && screen.orientation.lock) {
+    // Orientation lock (best effort)
+    if (screen.orientation?.lock) {
       screen.orientation.lock("landscape").catch(() => {});
     }
 
-    // Fix for iOS address bar / dynamic UI jumps: keep an up-to-date --vh variable.
+    // Keep --vh up to date for iOS UI chrome changes
     const setVH = () => {
       document.documentElement.style.setProperty("--vh", (window.innerHeight * 0.01) + "px");
     };
     window.addEventListener("resize", setVH);
     window.addEventListener("orientationchange", () => setTimeout(setVH, 250));
     setVH();
-  </script>
-</body>
-</html>
+
+    // Try to auto-start when same-origin; otherwise show the Start overlay
+    iframe.addEventListener("load", () => {
+      if (hint) hint.style.display = "none";
+
+      const didAuto = trySameOriginAutoStart();
+      if (!didAuto) {
+        // For cross-origin (most cases), show overlay to get a single user gesture
+        starter.hidden = false;
+      } else {
+        // Also tell the game we want to start (harmless if ignored)
+        safePostMessage({ type: "AUTO_START" });
+      }
+    });
+
+    // Start button: unlock audio, fullscreen (best-effort), focus iframe, and nudge game to start
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      // 1) Unlock WebAudio on this page (helps some engines)
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) {
+          const ac = new AC();
+          await ac.resume();
+        }
+      } catch {}
+
+      // 2) Fullscreen best effort (works in many Android/desktop cases)
+      try {
+        await (iframe.requestFullscreen?.() || document.documentElement.requestFullscreen?.() || Promise.resolve());
+      } catch {}
+
+      // 3) Focus the game
+      try { iframe.contentWindow?.focus(); } catch {}
+
+      // 4) Politely ask the game to start/unmute (for engines that listen)
+      safePostMessage({ type: "AUTO_START" });
+      safePostMessage({ type: "UNMUTE" });
+
+      // 5) If it’s same-origin and we can see a Play/Start button, click it now
+      trySameOriginAutoStart();
+
+      // Hide overlay
+      starter.hidden = true;
+    });
+
+    function safePostMessage(msg) {
+      try { iframe.contentWindow?.postMessage(msg, "*"); } catch {}
+    }
+
+    // Attempts to click common "Play/Start" buttons if SAME-ORIGIN only.
+    function trySameOriginAutoStart() {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!doc) return false;
+
+        // Short delay so game DOM can render its UI
+        setTimeout(() => clickCommon(doc), 50);
+        setTimeout(() => clickCommon(doc), 300);
+        setTimeout(() => clickCommon(doc), 900);
+
+        // Also observe for late UI
+        const mo = new MutationObserver(() => clickCommon(doc));
+        mo.observe(doc.documentElement, { subtree: true, childList: true });
+        // Stop after a while
+        setTimeout(() => mo.disconnect(), 5000);
+
+        return true; // we were able to access (i.e., same-origin)
+      } catch {
+        return false; // cross-origin, cannot poke inside
+      }
+    }
+
+    function clickCommon(doc) {
+      const selectors = [
+        'button[aria-label*="play" i]',
+        'button[title*="play" i]',
+        'button.play', '.play', '.play-btn', '.btn-play',
+        '#play', '#start', '.start', '.start-button',
+        'canvas' // some engines start on any click
+      ];
+      for (const sel of selectors) {
+        const el = doc.querySelector(sel
