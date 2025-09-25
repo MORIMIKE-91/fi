@@ -50,7 +50,7 @@
   <script>
     // Read ?u=<encoded target url> from the querystring.
     const params = new URLSearchParams(location.search);
-    const target = params.get("u") || "https://playhop.com/dist-app/419385?header=no&skip-guard=1&utm_source=parent_window_api&utm_medium=playgama&flags={%22adv_types_disabled%22:16}";
+    const target = params.get("u") || "https://app-327874.games.s3.yandex.net/327874/zb3awev3vlbc92qa0faere9dhu2zxz0r_brotli/index.html?header=no&amp;skip-guard=1&amp;clid=2951034&amp;flags=%7B%22adv_types_disabled%22%3A16%7D&amp;sdk=%2Fsdk%2F_%2Fv2.c68e1234372250dd975a.js#origin=https%3A%2F%2Fplayhop.com&amp;app-id=327874&amp;device-type=mobile";
     const iframe = document.getElementById("frame");
     iframe.src = target;
 
